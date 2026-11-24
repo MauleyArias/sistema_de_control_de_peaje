@@ -75,7 +75,7 @@ render.yaml      blueprint de Render
 | M3 | YOLO11n-pose propio (1 keypoint por rueda) |
 | Pasajeros | YOLO11n-seg, clase persona dentro de la caja del vehículo; evidencia solo con máscara |
 | Inferencia | FastAPI + Uvicorn en un Pod GPU de RunPod (respaldo: Colab + túnel de Cloudflare) |
-| Web | Laravel 12 (PHP 8.3), Blade, Sanctum, Socialite, Docker en Render |
+| Web | Laravel 12 (PHP 8.4), Blade, Sanctum, Socialite, Docker en Render |
 | Base de datos | PostgreSQL gestionado (Neon) |
 | Tiempo real | Pusher Channels (canal privado `private-panel`) |
 | Agente | Google Gemini 3.5 Flash con function calling (`consultar_placa`), con respaldo por reglas |
@@ -125,7 +125,7 @@ La guía completa, paso a paso, está en **[docs/GUIA_DESPLIEGUE.md](docs/GUIA_D
 | Inferencia (RunPod) | `inferencia/requirements.txt` (versiones fijadas) | `python -m venv /workspace/venv-inferencia && pip install -r requirements.txt` (lo hace `iniciar_runpod.sh`) |
 | Inferencia (Colab) | `inferencia/requirements.txt` | primera celda de `entrenamiento/Inferencia_en_Colab.ipynb` |
 | Entrenamiento (Colab) | `entrenamiento/requirements.txt` | primera celda de cada notebook |
-| Web | `web/composer.lock` + `web/Dockerfile` (PHP 8.3) | imagen Docker construida por Render |
+| Web | `web/composer.lock` + `web/Dockerfile` (PHP 8.4) | imagen Docker construida por Render |
 | Móvil | `movil/pubspec.lock` | `flutter pub get` |
 
 Diagnóstico: `python inferencia/diagnostico.py` (versión de Python, torch, CUDA, ultralytics) y la celda de diagnóstico de cada notebook. Las salidas van a la carpeta de evidencias.

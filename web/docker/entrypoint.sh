@@ -12,4 +12,7 @@ php artisan migrate --force
 # Crea lista blanca (docente admin + ADMIN_EMAILS) y, la primera vez, los datos de prueba.
 php artisan db:seed --force
 
+# Los comandos anteriores corren como root: Apache (www-data) debe poder leer/escribir la caché.
+chown -R www-data:www-data storage bootstrap/cache
+
 exec apache2-foreground
