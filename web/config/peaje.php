@@ -12,7 +12,7 @@ return [
 
     // Agente conversacional (Google Gemini, function calling).
     'gemini_key' => env('GEMINI_API_KEY'),
-    'gemini_model' => env('GEMINI_MODEL', 'gemini-2.5-flash'),
+    'gemini_model' => env('GEMINI_MODEL', 'gemini-3.5-flash'),
 
     // Google OAuth: IDs de cliente aceptados como "aud" del ID token (web + Android).
     'google_client_ids' => array_filter(array_map('trim', explode(',', (string) env('GOOGLE_ALLOWED_AUDIENCES', env('GOOGLE_CLIENT_ID', ''))))),

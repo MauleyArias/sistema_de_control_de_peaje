@@ -78,7 +78,7 @@ render.yaml      blueprint de Render
 | Web | Laravel 12 (PHP 8.3), Blade, Sanctum, Socialite, Docker en Render |
 | Base de datos | PostgreSQL gestionado (Neon) |
 | Tiempo real | Pusher Channels (canal privado `private-panel`) |
-| Agente | Google Gemini 2.5 Flash con function calling (`consultar_placa`), con respaldo por reglas |
+| Agente | Google Gemini 3.5 Flash con function calling (`consultar_placa`), con respaldo por reglas |
 | Móvil | Flutter 3 (Android): `google_sign_in`, `camera`, `image_picker`, `usb_serial` |
 | Hardware | Arduino UNO + LEDs + buzzer por USB OTG |
 

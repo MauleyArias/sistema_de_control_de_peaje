@@ -234,4 +234,4 @@ paths:
                 estado: registrada_con_paso
                 estado_texto: Registrada y con paso
                 placa: 2580BOS
-                motor: gemini:gemini-2.5-flash
+                motor: gemini:gemini-3.5-flash
