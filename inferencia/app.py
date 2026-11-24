@@ -27,8 +27,9 @@ MODELOS = BASE / "modelos"
 API_KEY = os.getenv("INFERENCE_API_KEY", "")
 OCR_MOTOR = os.getenv("OCR_MOTOR", "fastocr")  # fastocr | easyocr
 UMBRAL_PLACA = float(os.getenv("UMBRAL_PLACA", "0.4"))
-UMBRAL_M2 = float(os.getenv("UMBRAL_M2", "0.35"))
-UMBRAL_M3 = float(os.getenv("UMBRAL_M3", "0.35"))
+UMBRAL_M2 = float(os.getenv("UMBRAL_M2", "0.25"))
+UMBRAL_M3 = float(os.getenv("UMBRAL_M3", "0.25"))
+KPT_CENTRO = int(os.getenv("KPT_CENTRO", "0"))  # índice del keypoint "centro de la llanta"
 DISPOSITIVO = os.getenv("DISPOSITIVO", "0" if os.getenv("CUDA_VISIBLE_DEVICES", "") != "" else "cpu")
 
 CATEGORIAS = ["moto", "auto", "minibus", "camion", "bus"]
@@ -150,8 +151,19 @@ def modelo_pasajeros():
 
 
 def clasificar_vehiculo(imagen):
-    """M2: devuelve (categoria, confianza, caja, mascara_poligono) del vehículo más grande."""
+    """M2: (categoria, confianza, caja, mascara_poligono, propio) del vehículo más grande.
+
+    Usa el modelo propio; si no detecta ningún vehículo, recurre al modelo COCO de respaldo
+    (car/bus/truck/motorcycle). El campo m2_modelo del JSON indica cuál respondió.
+    """
     modelo, propio = modelo_m2()
+    resultado = _vehiculo_mas_grande(modelo, propio, imagen)
+    if resultado[0] is None and propio:
+        resultado = _vehiculo_mas_grande(yolo("yolo11n-seg.pt"), False, imagen)
+    return resultado
+
+
+def _vehiculo_mas_grande(modelo, propio, imagen):
     res = modelo.predict(imagen, conf=UMBRAL_M2, device=DISPOSITIVO, verbose=False, retina_masks=False)[0]
     mejor = None
     for i, caja in enumerate(res.boxes):
@@ -170,30 +182,36 @@ def clasificar_vehiculo(imagen):
 
 
 def contar_ejes(imagen, caja_vehiculo):
-    """M3: cada rueda visible de costado = un keypoint = un eje."""
+    """M3: cada llanta visible de costado es una instancia de pose = un eje.
+
+    El modelo propio marca 5 keypoints por llanta (centro, abajo, arriba, izquierda, derecha);
+    se usa el keypoint KPT_CENTRO (0) como posición de la llanta. Si el modelo tuviera 1 solo
+    keypoint, también funciona.
+    """
     modelo = modelo_m3()
     if modelo is None:
         return None, []
     res = modelo.predict(imagen, conf=UMBRAL_M3, device=DISPOSITIVO, verbose=False)[0]
-    puntos = []
-    if res.keypoints is not None:
-        for kp, conf in zip(res.keypoints.xy.tolist(), res.boxes.conf.tolist()):
-            for x, y in kp:
-                if x <= 0 and y <= 0:
+    llantas = []
+    if res.keypoints is not None and len(res.boxes):
+        for kp, caja, conf in zip(res.keypoints.xy.tolist(), res.boxes.xyxy.tolist(), res.boxes.conf.tolist()):
+            bx1, by1, bx2, by2 = caja
+            x, y = kp[KPT_CENTRO] if len(kp) > KPT_CENTRO else ((bx1 + bx2) / 2, (by1 + by2) / 2)
+            if x <= 0 and y <= 0:  # keypoint no visible: centro de la caja
+                x, y = (bx1 + bx2) / 2, (by1 + by2) / 2
+            if caja_vehiculo:
+                x1, y1, x2, y2 = caja_vehiculo
+                margen = 0.1 * (x2 - x1)
+                if not (x1 - margen <= x <= x2 + margen and y1 - margen <= y <= y2 + margen):
                     continue
-                if caja_vehiculo:
-                    x1, y1, x2, y2 = caja_vehiculo
-                    margen = 0.1 * (x2 - x1)
-                    if not (x1 - margen <= x <= x2 + margen and y1 <= y <= y2 + margen):
-                        continue
-                puntos.append([round(x), round(y), round(conf, 3)])
-    # Ruedas casi a la misma x (rueda doble) cuentan como un solo eje.
-    puntos.sort(key=lambda p: p[0])
+            llantas.append([round(x), round(y), round(conf, 3), bx2 - bx1])
+    # Llantas cuyos centros se separan menos de media llanta (rueda doble) cuentan como un solo eje.
+    llantas.sort(key=lambda p: p[0])
     ejes = []
-    for p in puntos:
-        if not ejes or p[0] - ejes[-1][0] > 25:
+    for p in llantas:
+        if not ejes or p[0] - ejes[-1][0] > 0.5 * max(p[3], ejes[-1][3], 20):
             ejes.append(p)
-    return len(ejes), ejes
+    return len(ejes), [p[:3] for p in ejes]
 
 
 def contar_pasajeros(imagen, caja_vehiculo):

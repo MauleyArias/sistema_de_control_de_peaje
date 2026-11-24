@@ -71,8 +71,8 @@ render.yaml      blueprint de Render
 | Datasets | Roboflow (Instance Segmentation y Keypoint Detection), con imágenes propias |
 | Entrenamiento | Google Colab (GPU T4), Ultralytics YOLO11 8.3.240 |
 | M1 | YOLOv9-t ONNX (proyecto anterior) + fast-plate-ocr (CCT, ONNX); EasyOCR como alternativa |
-| M2 | YOLO11n-seg propio (moto, auto, minibus, camion, bus) |
-| M3 | YOLO11n-pose propio (1 keypoint por rueda) |
+| M2 | YOLO11s-seg propio (moto, auto, minibus, camion, bus) con respaldo COCO si no detecta |
+| M3 | YOLO11s-pose propio (5 keypoints por llanta; el centro define el eje) |
 | Pasajeros | YOLO11n-seg, clase persona dentro de la caja del vehículo; evidencia solo con máscara |
 | Inferencia | FastAPI + Uvicorn en un Pod GPU de RunPod (respaldo: Colab + túnel de Cloudflare) |
 | Web | Laravel 12 (PHP 8.4), Blade, Sanctum, Socialite, Docker en Render |
