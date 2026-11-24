@@ -9,12 +9,12 @@ Orden recomendado (cada paso deja algo que necesita el siguiente). Anota cada va
 
 ## 0. Repositorio en GitHub (10 min)
 
-1. En github.com, **New repository** → `peaje-ia` (público, o privado compartido con el docente). No marques "Add README".
+1. En github.com, **New repository** → ya creado: https://github.com/MauleyArias/sistema_de_control_de_peaje. No marques "Add README".
 2. En PowerShell, dentro de `D:\UNIVERSIDAD\IA\peaje`:
    ```powershell
    git add .
    git commit -m "Sistema de control de peaje"
-   git remote add origin https://github.com/TU_USUARIO/peaje-ia.git
+   git remote add origin https://github.com/MauleyArias/sistema_de_control_de_peaje.git
    git push -u origin main
    ```
 3. Antes de cada push, revisa que `git status` **no** muestre ningún `.env` (−10 puntos si se sube un secreto).
@@ -79,8 +79,8 @@ Para el **rechazo** de una cuenta no autorizada en el video, usa una cuenta que 
 4. Deploy → **Connect → Web Terminal** (o Jupyter Lab):
    ```bash
    cd /workspace
-   git clone https://github.com/TU_USUARIO/peaje-ia.git
-   cd peaje-ia/inferencia
+   git clone https://github.com/MauleyArias/sistema_de_control_de_peaje.git
+   cd sistema_de_control_de_peaje/inferencia
    # subir m2_seg.pt y m3_pose.pt a modelos/ (Jupyter: arrastrar el archivo; o gdown desde Drive)
    bash iniciar_runpod.sh
    ```
@@ -101,7 +101,7 @@ Para el **rechazo** de una cuenta no autorizada en el video, usa una cuenta que 
 
 ## 6. Aplicación web en Render (20 min)
 
-1. https://render.com → iniciar sesión con GitHub → **New → Blueprint** → elige el repositorio `peaje-ia` (Render lee `render.yaml`).
+1. https://render.com → iniciar sesión con GitHub → **New → Blueprint** → elige el repositorio `sistema_de_control_de_peaje` (Render lee `render.yaml`).
 2. Nombre del servicio: `peaje-ia` → subdominio `https://peaje-ia.onrender.com` (si ya está ocupado, elige otro y actualiza Google Cloud).
 3. Completa las variables marcadas (todas las de `web/.env.example`):
    `APP_KEY`, `APP_URL`, `DB_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI=https://peaje-ia.onrender.com/auth/google/callback`, `GOOGLE_ALLOWED_AUDIENCES` (= client ID web), `ADMIN_EMAILS` (tu Gmail), `PUSHER_*`, `INFERENCE_URL`, `INFERENCE_API_KEY`, `GEMINI_API_KEY`.
