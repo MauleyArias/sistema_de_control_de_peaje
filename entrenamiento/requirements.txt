@@ -1,0 +1,3 @@
+# Entorno de entrenamiento (Google Colab, GPU T4). Instalado en la primera celda de cada notebook.
+ultralytics==8.3.240
+roboflow==1.1.66

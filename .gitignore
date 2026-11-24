@@ -1,0 +1,21 @@
+# Secretos: nunca al repositorio (-10 puntos). Solo se sube .env.example
+.env
+*.env
+!.env.example
+**/google-services.json
+*.jks
+*.keystore
+key.properties
+
+# Entornos y cachés
+inferencia/.venv/
+**/__pycache__/
+*.pyc
+inferencia/yolo11n*.pt
+inferencia/diagnostico_*.txt
+.ipynb_checkpoints/
+
+# Evidencias pesadas (van a la carpeta en la nube)
+evidencias/
+*.mp4
+*.apk

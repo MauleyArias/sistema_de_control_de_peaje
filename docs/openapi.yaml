@@ -1,0 +1,237 @@
+openapi: 3.0.3
+info:
+  title: API Sistema de Control de Peaje
+  version: 1.0.0
+  description: |
+    API REST del sistema de peaje (IAM-811). Todas las rutas, excepto `POST /auth/google`, exigen
+    `Authorization: Bearer <token>`. El token se obtiene canjeando el ID token de Google Sign-In.
+    Solo las cuentas de la lista blanca (tabla `usuarios`) reciben token; las demás reciben 403.
+servers:
+  - url: /api/v1
+components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+  schemas:
+    Estado:
+      type: object
+      properties:
+        placa: { type: string, example: 2580BOS }
+        formato_valido: { type: boolean }
+        formato_boliviano: { type: boolean }
+        estado:
+          type: string
+          nullable: true
+          enum: [registrada_con_paso, registrada_sin_paso, identificada_no_registrada, no_existe]
+        vehiculo:
+          type: object
+          nullable: true
+          properties:
+            propietario: { type: string }
+            categoria: { type: string }
+            ejes: { type: integer }
+            saldo: { type: number }
+            activo: { type: boolean }
+        total_pasos: { type: integer }
+        ultimo_paso:
+          type: object
+          nullable: true
+          properties:
+            fecha: { type: string }
+            caseta: { type: string }
+            categoria: { type: string }
+            ejes: { type: integer }
+            monto: { type: number }
+            estado: { type: string }
+        sugerencias: { type: array, items: { type: string }, example: [2580BOS] }
+    Paso:
+      type: object
+      properties:
+        id: { type: integer }
+        placa: { type: string }
+        placa_leida: { type: string }
+        confianza_ocr: { type: number }
+        categoria: { type: string, enum: [moto, auto, minibus, camion, bus] }
+        ejes: { type: integer }
+        pasajeros: { type: integer }
+        monto: { type: number }
+        estado: { type: string, enum: [cobrado, sin_saldo, no_registrada, vehiculo_inactivo] }
+        caseta: { type: string }
+        imagen_url: { type: string }
+        latencia_ms: { type: integer }
+        hora: { type: string }
+security:
+  - bearer: []
+paths:
+  /auth/google:
+    post:
+      tags: [Autenticación]
+      summary: Canjea el ID token de Google por el token de sesión del sistema
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id_token]
+              properties:
+                id_token: { type: string, description: ID token de Google Sign-In (aud = client ID web) }
+                dispositivo: { type: string, example: caseta-norte-android }
+      responses:
+        '200':
+          description: Token emitido
+          content:
+            application/json:
+              example:
+                token: 12|AbCdEf...
+                tipo: Bearer
+                expira: '2026-12-01T10:00:00-04:00'
+                usuario: { id: 1, email_google: operador@gmail.com, nombre: Operador, rol: operador }
+        '401': { description: Token de Google inválido o de otra aplicación }
+        '403': { description: Cuenta no autorizada (fuera de la lista blanca) }
+  /yo:
+    get:
+      tags: [Autenticación]
+      summary: Usuario autenticado
+      responses: { '200': { description: OK }, '401': { description: No autenticado } }
+  /casetas:
+    get:
+      tags: [Casetas]
+      summary: Lista de casetas
+      responses: { '200': { description: OK } }
+  /pasos/frame:
+    post:
+      tags: [Pasos]
+      summary: Recibe un frame, llama a la inferencia, registra el paso y lo emite en tiempo real
+      description: |
+        La app envía 2 a 5 frames por segundo. Si la placa ya se registró en la misma caseta durante
+        los últimos 60 s se responde `duplicado: true` sin crear otro paso. Sin placa legible o con
+        confianza baja, `registrado: false` y `motivo` lo explica.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [imagen, caseta_id]
+              properties:
+                imagen: { type: string, format: binary }
+                caseta_id: { type: integer, example: 1 }
+      responses:
+        '200':
+          description: Resultado
+          content:
+            application/json:
+              example:
+                registrado: true
+                duplicado: false
+                motivo: null
+                placa: 2580BOS
+                confianza: 0.94
+                categoria: auto
+                ejes: 2
+                pasajeros: 2
+                tarifa: 6
+                estado: cobrado
+                alerta: null
+                paso_id: 31
+                latencia_inferencia_ms: 180
+                latencia_total_ms: 420
+        '503': { description: El endpoint de inferencia no responde }
+  /placas/consultar:
+    post:
+      tags: [Placas]
+      summary: Consulta una placa por texto y devuelve su estado
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [placa]
+              properties:
+                placa: { type: string, example: 2580-bos }
+      responses:
+        '200':
+          description: Estado
+          content: { application/json: { schema: { $ref: '#/components/schemas/Estado' } } }
+  /placas/consultar-imagen:
+    post:
+      tags: [Placas]
+      summary: Consulta una placa por imagen (M1 + OCR) y devuelve su estado
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [imagen]
+              properties:
+                imagen: { type: string, format: binary }
+      responses:
+        '200':
+          description: Estado + lectura OCR
+          content: { application/json: { schema: { $ref: '#/components/schemas/Estado' } } }
+        '422': { description: Sin placa legible en la imagen }
+  /placas/{placa}/historial:
+    get:
+      tags: [Placas]
+      summary: Historial de pasos de una placa
+      parameters:
+        - { name: placa, in: path, required: true, schema: { type: string }, example: 2580BOS }
+      responses:
+        '200':
+          description: Pasos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  placa: { type: string }
+                  pasos: { type: array, items: { $ref: '#/components/schemas/Paso' } }
+  /casetas/{id}/resumen:
+    get:
+      tags: [Casetas]
+      summary: Conteo y recaudación del día de una caseta
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer }, example: 1 }
+      responses:
+        '200':
+          description: Resumen
+          content:
+            application/json:
+              example: { caseta: { id: 1, nombre: Caseta Norte }, fecha: '2026-11-24', pasos: 12, recaudacion: 96.0, alertas: 2, alertas_pendientes: 1 }
+  /agente/chat:
+    post:
+      tags: [Agente]
+      summary: Mensaje al agente conversacional (texto y/o imagen)
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                mensaje: { type: string, example: ¿Qué estado tiene la placa 258O-BOS? }
+                imagen: { type: string, format: binary }
+          application/json:
+            schema:
+              type: object
+              properties:
+                mensaje: { type: string }
+                historial:
+                  type: array
+                  items: { type: object, properties: { rol: { type: string, enum: [user, model] }, texto: { type: string } } }
+      responses:
+        '200':
+          description: Respuesta del agente
+          content:
+            application/json:
+              example:
+                respuesta: 'Placa 2580BOS: Registrada y con paso. Último paso el 2026-11-23 10:12 en Caseta Norte, categoría auto, monto Bs 6.00.'
+                estado: registrada_con_paso
+                estado_texto: Registrada y con paso
+                placa: 2580BOS
+                motor: gemini:gemini-2.5-flash

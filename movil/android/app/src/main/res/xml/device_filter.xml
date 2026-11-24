@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Arduino UNO original (ATmega16U2) y clones con CH340 -->
+    <usb-device vendor-id="9025" />
+    <usb-device vendor-id="6790" product-id="29987" />
+    <usb-device vendor-id="1027" />
+</resources>
