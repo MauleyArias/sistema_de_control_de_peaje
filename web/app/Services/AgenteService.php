@@ -13,18 +13,20 @@ use Illuminate\Support\Facades\Log;
 class AgenteService
 {
     private const INSTRUCCIONES = <<<'TXT'
-Eres el asistente del sistema de control de peaje. Respondes en español, en 2 a 4 frases.
+Eres el asistente del sistema de control de peaje. Respondes en español, de forma breve y clara.
 Reglas obligatorias:
 1. Para cualquier consulta sobre una placa DEBES llamar a la herramienta consultar_placa. Nunca respondas datos de una placa sin llamarla.
 2. Usa SOLO los datos devueltos por las herramientas. No inventes fechas, montos, casetas, propietarios ni estados.
-3. Indica siempre uno de los cuatro estados con estas palabras exactas:
+3. Si la consulta es sobre una placa, indica siempre uno de los cuatro estados con estas palabras exactas:
    - "Registrada y con paso" (incluye fecha, caseta, categoría y monto del último paso)
    - "Registrada sin paso"
    - "Identificada no registrada" (menciona que es una posible evasión)
    - "No existe"
 4. Si la herramienta devuelve sugerencias, pregunta "¿Quisiste decir …?" con esas placas (pueden ser errores de OCR como O/0, I/1, B/8, S/5).
 5. Si el formato de la placa no es válido, dilo y pide la placa de nuevo.
-6. Si el usuario pregunta algo ajeno al peaje, indica amablemente que solo atiendes consultas de placas.
+6. Para preguntas generales del peaje (cuántos vehículos hay, recaudación, pasos, alertas, casetas, tarifas, vehículos sin saldo) llama a resumen_sistema, ultimos_pasos, listar_alertas, listar_vehiculos o listar_tarifas y responde con esos datos. Nunca des cifras sin llamar a una herramienta.
+7. Solo consultas: no puedes crear, cambiar ni borrar datos.
+8. Si saludan o preguntan qué puedes hacer, explica brevemente que consultas placas (texto o foto) y datos del peaje. Si preguntan algo ajeno al peaje, dilo amablemente.
 TXT;
 
     private const ETIQUETAS = [
@@ -53,11 +55,12 @@ TXT;
         }
 
         $consultas = [];
+        $sistema = [];
         $texto = null;
         $motor = 'reglas';
         if (config('peaje.gemini_key')) {
             try {
-                $texto = $this->conGemini($mensaje, $historial, $consultas);
+                $texto = $this->conGemini($mensaje, $historial, $consultas, $sistema);
                 $motor = 'gemini:'.config('peaje.gemini_model');
             } catch (\Throwable $e) {
                 Log::warning('Agente: Gemini falló, se usa la plantilla', ['error' => $e->getMessage()]);
@@ -65,18 +68,21 @@ TXT;
         }
 
         // Respaldo determinista (o si el LLM no llamó a la herramienta).
-        if (empty($consultas)) {
+        if (empty($consultas) && empty($sistema)) {
             $placa = $this->extraerPlaca($mensaje);
             if ($placa !== null) {
                 $consultas[] = PlacaService::consultar($placa);
+                $texto = null;
+            } elseif ($texto !== null && preg_match('/\d/', $texto)) {
+                $texto = null;  // sin herramienta no se aceptan cifras del LLM
             }
-            $texto = null;
         }
         $ultimo = end($consultas) ?: null;
         if ($texto === null || trim($texto) === '') {
             $motor = 'reglas';
             $texto = $ultimo ? $this->plantilla($ultimo)
-                : 'Puedo informarte el estado de una placa. Escríbela (por ejemplo 1234ABC) o envía una foto de la placa.';
+                : (ConsultasService::plantilla($mensaje)
+                    ?? 'Puedo consultar una placa (escríbela, por ejemplo 1234ABC, o envía una foto) y datos del peaje: vehículos registrados, pasos, recaudación, alertas, casetas y tarifas.');
         }
 
         return [
@@ -90,7 +96,7 @@ TXT;
         ];
     }
 
-    private function conGemini(string $mensaje, array $historial, array &$consultas): string
+    private function conGemini(string $mensaje, array $historial, array &$consultas, array &$sistema): string
     {
         $contenidos = [];
         foreach (array_slice($historial, -6) as $h) {
@@ -108,6 +114,32 @@ TXT;
                 'properties' => ['placa' => ['type' => 'string', 'description' => 'Placa tal como la escribió el usuario o la leyó el OCR']],
                 'required' => ['placa'],
             ],
+        ], [
+            'name' => 'resumen_sistema',
+            'description' => 'Totales del peaje: vehículos (placas) registrados y por categoría, activos, sin saldo; pasos, recaudación y alertas de hoy e históricos; casetas.',
+        ], [
+            'name' => 'ultimos_pasos',
+            'description' => 'Últimos vehículos que pasaron por las casetas.',
+            'parameters' => ['type' => 'object', 'properties' => [
+                'limite' => ['type' => 'integer', 'description' => 'Cuántos (1 a 20)'],
+                'estado' => ['type' => 'string', 'enum' => ['cobrado', 'sin_saldo', 'no_registrada', 'vehiculo_inactivo']],
+            ]],
+        ], [
+            'name' => 'listar_alertas',
+            'description' => 'Alertas del peaje: total y detalle de las más recientes.',
+            'parameters' => ['type' => 'object', 'properties' => [
+                'solo_pendientes' => ['type' => 'boolean'], 'limite' => ['type' => 'integer'],
+            ]],
+        ], [
+            'name' => 'listar_vehiculos',
+            'description' => 'Lista y total de vehículos registrados, por categoría o sin saldo.',
+            'parameters' => ['type' => 'object', 'properties' => [
+                'categoria' => ['type' => 'string', 'enum' => ['moto', 'auto', 'minibus', 'camion', 'bus']],
+                'sin_saldo' => ['type' => 'boolean'], 'limite' => ['type' => 'integer'],
+            ]],
+        ], [
+            'name' => 'listar_tarifas',
+            'description' => 'Tarifas en bolivianos por categoría y número de ejes.',
         ]]]];
 
         $url = 'https://generativelanguage.googleapis.com/v1beta/models/'.config('peaje.gemini_model').':generateContent';
@@ -124,9 +156,24 @@ TXT;
             if (empty($llamadas)) {
                 return implode('', array_map(fn ($p) => $p['text'] ?? '', $partes));
             }
-            $contenidos[] = ['role' => 'model', 'parts' => $partes];
+            // args vacío debe volver como objeto JSON ({}), no como lista ([]).
+            $contenidos[] = ['role' => 'model', 'parts' => array_map(function ($p) {
+                if (isset($p['functionCall']) && empty($p['functionCall']['args'])) {
+                    $p['functionCall']['args'] = (object) [];
+                }
+
+                return $p;
+            }, $partes)];
             $respuestas = [];
             foreach ($llamadas as $llamada) {
+                $nombre = $llamada['functionCall']['name'] ?? '';
+                if ($nombre !== 'consultar_placa') {
+                    $datos = ConsultasService::ejecutar($nombre, $llamada['functionCall']['args'] ?? []);
+                    $sistema[] = ['herramienta' => $nombre, 'datos' => $datos];
+                    $respuestas[] = ['functionResponse' => ['name' => $nombre, 'response' => $datos]];
+
+                    continue;
+                }
                 $resultado = PlacaService::consultar($llamada['functionCall']['args']['placa'] ?? '');
                 if ($resultado['estado'] ?? null) {
                     $resultado['estado_texto'] = self::ETIQUETAS[$resultado['estado']];

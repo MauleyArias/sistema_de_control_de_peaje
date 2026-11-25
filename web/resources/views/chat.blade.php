@@ -2,7 +2,7 @@
 @section('titulo', 'Agente')
 @section('contenido')
 <h1>Agente conversacional</h1>
-<p class="suave">Escribe una placa (ej. <span class="placa">2580-BOS</span>) o adjunta una foto. El agente consulta la base de datos y responde uno de los 4 estados; no inventa datos.</p>
+<p class="suave">Escribe una placa (ej. <span class="placa">2580-BOS</span>) o adjunta una foto. También responde preguntas del peaje: vehículos, pasos, recaudación, alertas, casetas y tarifas. Consulta la base de datos; no inventa datos.</p>
 <div class="tarjeta" style="max-width:820px">
     <div id="mensajes" style="min-height:300px;max-height:60vh;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding-bottom:10px"></div>
     <form id="form-chat" class="fila" style="border-top:1px solid var(--borde);padding-top:12px">
@@ -31,7 +31,7 @@ function burbuja(texto, mio, extra = '') {
     caja.scrollTop = caja.scrollHeight;
     return d;
 }
-burbuja('Hola, soy el agente del peaje. Dime una placa o envíame una foto de ella.', false);
+burbuja('Hola, soy el agente del peaje. Dime una placa, envíame una foto o pregúntame por vehículos, pasos, recaudación, alertas o tarifas.', false);
 document.getElementById('imagen').addEventListener('change', (e) => {
     document.getElementById('adjunto').textContent = e.target.files[0] ? 'Adjunto: ' + e.target.files[0].name : '';
 });

@@ -161,6 +161,49 @@ class PeajeTest extends TestCase
             ->assertJsonPath('estado', null)->assertSee('otra foto');
     }
 
+    public function test_agente_responde_preguntas_del_sistema_sin_llm(): void
+    {
+        $this->operador();
+        $n = Vehiculo::count();
+        $preguntas = [
+            'cuantas placas registradas hay??' => "Hay $n placas registradas",
+            'recaudacion de hoy' => 'de hoy: Bs',
+            'hay alertas pendientes?' => 'alertas pendientes',
+            'que tarifas hay' => 'Tarifas:',
+            'vehiculos sin saldo' => 'sin saldo',
+            'ultimos pasos' => 'pasos',
+            'que casetas hay' => 'Caseta Norte',
+        ];
+        foreach ($preguntas as $p => $esperado) {
+            $r = $this->postJson('/api/v1/agente/chat', ['mensaje' => $p])->assertOk()->assertJsonPath('estado', null)->json();
+            $this->assertStringContainsString($esperado, $r['respuesta'], $p);
+        }
+        $this->postJson('/api/v1/agente/chat', ['mensaje' => 'cuantos pasos tiene la placa 2580BOS'])->assertJsonPath('estado', 'registrada_con_paso');
+    }
+
+    public function test_agente_con_llm_usa_herramientas_y_no_acepta_cifras_inventadas(): void
+    {
+        $this->operador();
+        config(['peaje.gemini_key' => 'x']);
+        $llm = fn (array $parte) => ['candidates' => [['content' => ['parts' => [$parte]]]]];
+        Http::swap(new \Illuminate\Http\Client\Factory);
+        Http::fake(['generativelanguage.googleapis.com/*' => Http::sequence()
+            ->push(['candidates' => [['content' => ['parts' => [['functionCall' => ['name' => 'resumen_sistema', 'args' => new \stdClass]]]]]]])
+            ->push($llm(['text' => 'Hay '.Vehiculo::count().' placas registradas.']))]);
+        $this->postJson('/api/v1/agente/chat', ['mensaje' => 'cuantas placas hay'])->assertJsonPath('respuesta', 'Hay '.Vehiculo::count().' placas registradas.');
+        Http::assertSent(fn ($q) => str_contains($q->body(), '"args":{}') && str_contains($q->body(), '"registrados":'.Vehiculo::count()));
+
+        Http::swap(new \Illuminate\Http\Client\Factory);
+        Http::fake(['generativelanguage.googleapis.com/*' => Http::response($llm(['text' => 'Hay 999 placas.']))]);
+        $r = $this->postJson('/api/v1/agente/chat', ['mensaje' => 'cuantas placas hay'])->json();
+        $this->assertStringNotContainsString('999', $r['respuesta']);
+        $this->assertSame('reglas', $r['motor']);
+
+        Http::swap(new \Illuminate\Http\Client\Factory);
+        Http::fake(['generativelanguage.googleapis.com/*' => Http::response($llm(['text' => 'Hola, consulto placas y datos del peaje.']))]);
+        $this->postJson('/api/v1/agente/chat', ['mensaje' => 'hola'])->assertJsonPath('respuesta', 'Hola, consulto placas y datos del peaje.');
+    }
+
     public function test_web_requiere_login_y_rol(): void
     {
         $this->get('/panel')->assertRedirect('/login');
