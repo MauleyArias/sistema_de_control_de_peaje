@@ -1,6 +1,7 @@
 # Informe técnico — Sistema Inteligente de Control de Peaje
 
-> Plantilla: completar los valores marcados con ▢ con los resultados reales y exportar a PDF.
+**Autora:** Shirley Andrea Arias (entrega individual)
+
 
 ## 1. Arquitectura
 - Diagrama (README) y descripción de cada componente: app Flutter → Laravel en Render → FastAPI con GPU en Vast.ai; Neon, Pusher, Gemini, Google OAuth y Arduino.
@@ -9,22 +10,22 @@
 ## 2. Datasets
 | Modelo | Origen | Imágenes (train/valid/test) | Clases / instancias | Aumentaciones |
 |---|---|---|---|---|
-| M2 segmentación | Roboflow: ▢ Universe + ▢ fotos propias | ▢/▢/▢ | moto ▢, auto ▢, minibus ▢, camion ▢, bus ▢ | flip H, brillo ±20 %, blur 1 px, ruido 1 % (×3) |
+| M2 segmentación | Roboflow, proyecto Peaje - Vehículos, versión 2 | 81 instancias de entrenamiento | moto 9, auto 17, minibus 14, camion 30, bus 11 | las de Ultralytics por defecto |
 | M3 keypoints | Roboflow Universe: axle (v5) y truck axel (v2, CC BY 4.0), más 9 fotos propias de autos (×4 copias) | 1226/210/32 propias | llanta, 5 puntos | las de los datasets públicos y las de Ultralytics por defecto (flip H incluido) |
-| M1 + OCR | Proyecto anterior (detector) + ▢ fotos evaluadas | — | — | — |
-| Pasajeros | YOLO11n-seg COCO (persona) + ▢ fotos propias para el conteo | — | persona | — |
+| M1 + OCR | Proyecto anterior (detector) + 48 fotos evaluadas (28 propias con placas bolivianas y 20 extranjeras) | — | — | — |
+| Pasajeros | YOLO11n-seg COCO (persona) | sin entrenamiento propio | persona | — |
 
 M3: los 5 puntos de los datasets públicos se generaron a partir de la caja de cada llanta y los de las fotos propias son pseudoetiquetas del M3 anterior. Las copias aumentadas de una misma foto quedan en el mismo grupo (train o valid). De *truck axel* se usó el recorte de cada camión etiquetado.
 
-Fuentes y licencias de las imágenes públicas: truck axel (CC BY 4.0); axle ▢; M2 ▢
+Fuentes y licencias de las imágenes públicas: truck axel (CC BY 4.0); axle y M2: ver la página de cada dataset.
 
 ## 3. Entrenamiento y métricas
 | Modelo | Base | Épocas | imgsz | mAP50 | mAP50-95 | Otra métrica |
 |---|---|---|---|---|---|---|
-| M2 (máscara) | yolo11n-seg | 80 | 640 | ▢ | ▢ | caja mAP50 ▢ |
+| M2 (máscara) | yolo11s-seg | 60 | 640 | 0,387 | 0,208 | caja mAP50 0,398 (última época) |
 | M3 (pose) | M3 anterior (yolo11s-pose) | 60 | 640 | 0,977 | 0,941 | caja mAP50 0,970 · camiones públicos: conteo exacto 84/105 (80 %), MAE 0,20 |
-| M1 + OCR | YOLOv9-t + fast-plate-ocr | — | 384 | — | — | placas exactas ▢/▢ (▢ %) · CER ▢ · EasyOCR ▢ % |
-| Pasajeros | yolo11n-seg | — | 640 | ▢ (COCO persona) | ▢ | MAE de conteo ▢ |
+| M1 + OCR | YOLOv9-t + fast-plate-ocr | — | 384 | — | — | bolivianas propias: 25/28 exactas (89 %), CER 0,046 (9/195) · extranjeras: 16/19 (84 %), CER 0,110 (13/118) |
+| Pasajeros | yolo11n-seg | — | 640 | — | — | sin evaluación propia; puede contar peatones detrás del vehículo |
 
 **M3 en fotos propias** (32 fotos que no se usaron en este entrenamiento; ejes reales contados a ojo). Aciertos exactos de M3:
 
@@ -41,17 +42,20 @@ Limitaciones: el 0,977 se midió en imágenes parecidas a las de entrenamiento; 
 
 **Categoría (M2 + respaldo COCO)** en 102 fotos propias, con umbral 0.5: 82 aciertos (auto 17/36, camion 23/24, moto 21/21, bus 21/21). M2 decide en 30 y acierta 28; en las demás responde COCO. Los errores son sobre todo SUV y pickups clasificados como camión. Algunas fotos pudieron usarse para entrenar M2.
 
-Incluir: `results.png`, matriz de confusión de M2, ejemplos de predicción.
+**Prueba con 28 fotos propias nuevas** (no usadas en el entrenamiento de M3 ni para elegir umbrales; tipo anotado a ojo): 18 aciertos de categoría. M2 decidió en 1 y falló; el resto lo resolvió COCO, que no tiene la clase minibús (0 de 6).
+
+**OCR, fotos propias:** 28 fotos tomadas en la calle, varias de noche. Fallos: en 1 el detector eligió una placa decorativa y en 2 el OCR confundió un carácter (4→A, D→Q).
+
+**OCR, fotos extranjeras:** 20 fotos; una no es legible a simple vista y se excluyó. Los textos de referencia se leyeron a ojo. Fallos: en 2 fotos el detector eligió otra zona (un faro y unas calcomanías) y en 1 el OCR leyó mal la placa.
+
 
 ## 4. Latencia de punta a punta
-Medir con la app (el valor `ms` del indicador EN VIVO) y con el JSON (`latencia_inferencia_ms`, `latencia_total_ms`, `tiempos.m1_ms/m2_ms/m3_ms/pasajeros_ms`).
 | Tramo | Promedio (ms) |
 |---|---|
-| Inferencia M1 / M2 / M3 / pasajeros (GPU ▢) | ▢ / ▢ / ▢ / ▢ |
-| Endpoint total | ▢ |
-| Web (API → inferencia → BD → Pusher) | ▢ |
-| App: captura → respuesta | ▢ |
-| Aparición en el panel tras la respuesta | < 1 s (Pusher) |
+| Desglose de una foto (RTX 3090; M1 en CPU) M1 / M2 / M3 / pasajeros | 99 / 195 / 45 / 24 |
+| Endpoint total (5 fotos) | 470 (285 a 704) |
+| `/salud` vista desde Render | 395 |
+| App: captura → respuesta | se observa en el indicador EN VIVO de la app |
 
 ## 5. Tiempo real
 Pusher Channels, canal privado `private-panel` autorizado por la sesión de Laravel (`/broadcasting/auth`). Eventos `paso.registrado` (paso + contadores) y `alerta.creada`. Se emiten con `ShouldBroadcastNow` (sin cola).
@@ -61,7 +65,7 @@ Google OAuth (Socialite) en la web; en la app, el ID token se valida con `tokeni
 
 ## 7. Puntos adicionales
 - Entornos: `requirements.txt` con versiones fijadas + salidas de `diagnostico.py` (Vast.ai, Colab).
-- Endpoint GPU en vivo: Vast.ai, RTX 3090, URL ▢ (aceptado por el docente en lugar de RunPod).
+- Endpoint GPU en vivo: Vast.ai, RTX 3090, URL `https://instrumental-democrat-folk-tables.trycloudflare.com/salud` (aceptado por el docente en lugar de RunPod).
 - Pasajeros: campo `pasos.pasajeros`, JSON `pasajeros`, columna en el panel, evidencia con máscara.
 - Hardware: Arduino UNO por USB OTG con LEDs y buzzer (fotos del circuito).
 
@@ -76,4 +80,4 @@ Google OAuth (Socialite) en la web; en la app, el ID token se valida con `tokeni
 | RunPod rechazó las tarjetas y Colab no daba GPU | Vast.ai para entrenar y para el endpoint |
 
 ## 9. Conclusiones
-▢
+El sistema funciona de punta a punta en la nube. La lectura de placas bolivianas es lo más sólido (25/28) y el reentrenamiento de M3 elevó los aciertos de ejes de 6 a 19 de 32. Lo principal por mejorar es el dataset de M2 (minibuses, SUV y fotos nocturnas) y evaluar el conteo de pasajeros.

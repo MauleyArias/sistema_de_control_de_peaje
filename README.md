@@ -8,7 +8,7 @@ Sistema de punta a punta: una app móvil captura video en la caseta y envía fra
 
 | Integrante | Rol |
 |---|---|
-| _Nombre completo_ | Dataset, entrenamiento, inferencia, web/agente, app móvil y hardware (entrega individual) |
+| Shirley Andrea Arias | Dataset, entrenamiento, inferencia, web/agente, app móvil y hardware (entrega individual) |
 
 ## Enlaces
 
