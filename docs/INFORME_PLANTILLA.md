@@ -10,7 +10,7 @@
 ## 2. Datasets
 | Modelo | Origen | Imágenes (train/valid/test) | Clases / instancias | Aumentaciones |
 |---|---|---|---|---|
-| M2 segmentación | Roboflow, proyecto Peaje - Vehículos, versión 2 | 81 instancias de entrenamiento | moto 9, auto 17, minibus 14, camion 30, bus 11 | las de Ultralytics por defecto |
+| M2 segmentación | Roboflow, proyecto Peaje - Vehículos, versión 2 (432×432, stretch) | 101 imágenes; 81 instancias de entrenamiento | moto 9, auto 17, minibus 14, camion 30, bus 11 | las de Ultralytics por defecto |
 | M3 keypoints | Roboflow Universe: axle (v5) y truck axel (v2, CC BY 4.0), más 9 fotos propias de autos (×4 copias) | 1226/210/32 propias | llanta, 5 puntos | las de los datasets públicos y las de Ultralytics por defecto (flip H incluido) |
 | M1 + OCR | Proyecto anterior (detector) + 48 fotos evaluadas (28 propias con placas bolivianas y 20 extranjeras) | — | — | — |
 | Pasajeros | YOLO11n-seg COCO (persona) | sin entrenamiento propio | persona | — |

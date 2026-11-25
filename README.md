@@ -17,7 +17,7 @@ Sistema de punta a punta: una app móvil captura video en la caseta y envía fra
 | Aplicación web (subdominio HTTPS) | `https://peaje-ia.onrender.com` |
 | Documentación de la API (Swagger) | `https://peaje-ia.onrender.com/api/docs` |
 | Endpoint de inferencia (Vast.ai) | `https://instrumental-democrat-folk-tables.trycloudflare.com/salud` |
-| Dataset M2 (Roboflow) | `https://universe.roboflow.com/<workspace>/peaje-vehiculos-seg` ← reemplazar |
+| Dataset M2 (Roboflow) | https://universe.roboflow.com/shirley-andrea-arias/peaje-vehiculos |
 | Datasets M3 (Roboflow Universe) | [axle](https://universe.roboflow.com/eternal-wiecw/axle-bjpov) y [truck axel](https://universe.roboflow.com/rajan-28noy/truck-axel), más fotos propias |
 | Carpeta de evidencias | Google Drive ← reemplazar |
 
