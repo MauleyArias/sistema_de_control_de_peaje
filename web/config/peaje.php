@@ -1,7 +1,7 @@
 <?php
 
 return [
-    // Endpoint de inferencia (RunPod o Colab). Cambiar de proveedor = cambiar esta variable.
+    // Endpoint de inferencia (Vast.ai, RunPod o Colab). Cambiar de proveedor = cambiar esta variable.
     'inference_url' => env('INFERENCE_URL', ''),
     'inference_key' => env('INFERENCE_API_KEY', ''),
     'inference_timeout' => (int) env('INFERENCE_TIMEOUT', 40),

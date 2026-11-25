@@ -2,7 +2,7 @@
 
 **IAM-811 Machine Learning y Aprendizaje Profundo · Laboratorio final de hito (entrega individual)**
 
-Sistema de punta a punta: una app móvil captura video en la caseta y envía frames a una aplicación web en la nube. La web llama a un endpoint de inferencia en RunPod con tres modelos de deep learning (placa + OCR, tipo de vehículo, ejes) más un conteo de pasajeros, cobra la tarifa, genera alertas y lo muestra todo **en tiempo real**. Un agente conversacional responde el estado de cualquier placa por texto o por imagen. El acceso es exclusivamente con Google.
+Sistema de punta a punta: una app móvil captura video en la caseta y envía frames a una aplicación web en la nube. La web llama a un endpoint de inferencia con GPU en Vast.ai con tres modelos de deep learning (placa + OCR, tipo de vehículo, ejes) más un conteo de pasajeros, cobra la tarifa, genera alertas y lo muestra todo **en tiempo real**. Un agente conversacional responde el estado de cualquier placa por texto o por imagen. El acceso es exclusivamente con Google.
 
 ## Integrantes
 
@@ -16,9 +16,9 @@ Sistema de punta a punta: una app móvil captura video en la caseta y envía fra
 |---|---|
 | Aplicación web (subdominio HTTPS) | `https://peaje-ia.onrender.com` ← reemplazar |
 | Documentación de la API (Swagger) | `https://peaje-ia.onrender.com/api/docs` |
-| Endpoint de inferencia (RunPod) | `https://<POD_ID>-8000.proxy.runpod.net/salud` ← reemplazar |
+| Endpoint de inferencia (Vast.ai) | `https://<tunel>.trycloudflare.com/salud` ← reemplazar |
 | Dataset M2 (Roboflow) | `https://universe.roboflow.com/<workspace>/peaje-vehiculos-seg` ← reemplazar |
-| Dataset M3 (Roboflow) | `https://universe.roboflow.com/<workspace>/peaje-ruedas-keypoints` ← reemplazar |
+| Datasets M3 (Roboflow Universe) | [axle](https://universe.roboflow.com/eternal-wiecw/axle-bjpov) y [truck axel](https://universe.roboflow.com/rajan-28noy/truck-axel), más fotos propias |
 | Carpeta de evidencias | Google Drive ← reemplazar |
 
 ## Arquitectura
@@ -38,7 +38,7 @@ flowchart LR
     PUSH -- WebSocket --> PANEL[Panel web en tiempo real]
     WEB -- function calling --> GEM[Google Gemini]
     WEB -- INFERENCE_URL + X-API-Key --> INF
-    subgraph RunPod [RunPod Pod GPU]
+    subgraph Vast [Vast.ai · GPU RTX 3090]
       INF[FastAPI /inferir]
       M1[M1 YOLOv9-t placas + OCR]
       M2[M2 YOLO11-seg tipo de vehículo]
@@ -50,13 +50,13 @@ flowchart LR
 
 Flujo de un paso: **app** (frame) → `POST /api/v1/pasos/frame` → **web** → `POST {INFERENCE_URL}/inferir` → JSON `{placa, confianza, categoria, ejes, pasajeros, latencia_ms}` → tarifa por categoría y ejes → cobro o alerta → **Pusher** → panel sin recargar → respuesta a la app → señal al **Arduino**.
 
-La web no sabe dónde corre la inferencia: cambiar de RunPod a Colab es solo cambiar `INFERENCE_URL`.
+La web no sabe dónde corre la inferencia: cambiar de proveedor (Vast.ai, RunPod, Colab) es solo cambiar `INFERENCE_URL`.
 
 ## Estructura
 
 ```
 /entrenamiento   notebooks de Colab: M2 segmentación, M3 keypoints, M1 validación OCR, pasajeros, inferencia en Colab
-/inferencia      endpoint FastAPI con los modelos + Dockerfile (RunPod) + diagnóstico de entorno
+/inferencia      endpoint FastAPI con los modelos + arranque en Vast.ai y RunPod + diagnóstico de entorno
 /web             Laravel 12: panel, CRUD, API REST, Google OAuth, tiempo real (Pusher), agente (Gemini)
 /movil           app Flutter (Android): Google Sign-In, modo Caseta, modo Consulta, Arduino por USB
 /hardware        sketch del Arduino UNO (dispositivo de alerta)
@@ -69,12 +69,12 @@ render.yaml      blueprint de Render
 | Capa | Tecnología |
 |---|---|
 | Datasets | Roboflow (Instance Segmentation y Keypoint Detection), con imágenes propias |
-| Entrenamiento | Google Colab (GPU T4), Ultralytics YOLO11 8.3.240 |
+| Entrenamiento | Google Colab (GPU T4); reentrenamiento de M3 en Vast.ai (RTX 3090). Ultralytics YOLO11 8.3.240 |
 | M1 | YOLOv9-t ONNX (proyecto anterior) + fast-plate-ocr (CCT, ONNX); EasyOCR como alternativa |
 | M2 | YOLO11s-seg propio (moto, auto, minibus, camion, bus) con respaldo COCO si no detecta |
-| M3 | YOLO11s-pose propio (5 keypoints por llanta; el centro define el eje) |
+| M3 | YOLO11s-pose propio (5 keypoints por llanta; el centro define el eje), sobre el recorte del vehículo de M2 |
 | Pasajeros | YOLO11n-seg, clase persona dentro de la caja del vehículo; evidencia solo con máscara |
-| Inferencia | FastAPI + Uvicorn en un Pod GPU de RunPod (respaldo: Colab + túnel de Cloudflare) |
+| Inferencia | FastAPI + Uvicorn en una instancia GPU de Vast.ai, publicada con túnel HTTPS |
 | Web | Laravel 12 (PHP 8.4), Blade, Sanctum, Socialite, Docker en Render |
 | Base de datos | PostgreSQL gestionado (Neon) |
 | Tiempo real | Pusher Channels (canal privado `private-panel`) |
@@ -112,7 +112,7 @@ La guía completa, paso a paso, está en **[docs/GUIA_DESPLIEGUE.md](docs/GUIA_D
 
 1. **Google Cloud**: proyecto, pantalla de consentimiento, clientes OAuth *Web* y *Android*.
 2. **Roboflow + Colab**: etiquetar, entrenar con los notebooks de `/entrenamiento`, guardar `m2_seg.pt` y `m3_pose.pt`.
-3. **RunPod**: Pod GPU, `git clone`, copiar los pesos a `inferencia/modelos/`, `bash iniciar_runpod.sh`, exponer el puerto HTTP 8000.
+3. **Vast.ai**: instancia con la plantilla PyTorch, `git clone`, `bash inferencia/iniciar_vast.sh` y túnel a `http://localhost:8000` en el Instance Portal. (Alternativa: RunPod con `iniciar_runpod.sh`).
 4. **Neon + Pusher + Gemini**: crear la BD, la app de Pusher y la API key de Gemini.
 5. **Render**: *New → Blueprint* con este repositorio y completar las variables de `web/.env.example`.
 6. **App**: `flutter build apk --release --dart-define=API_URL=... --dart-define=GOOGLE_WEB_CLIENT_ID=...`.
@@ -122,9 +122,10 @@ La guía completa, paso a paso, está en **[docs/GUIA_DESPLIEGUE.md](docs/GUIA_D
 
 | Servicio | Archivo de entorno | Cómo recrearlo |
 |---|---|---|
-| Inferencia (RunPod) | `inferencia/requirements.txt` (versiones fijadas) | `python -m venv /workspace/venv-inferencia && pip install -r requirements.txt` (lo hace `iniciar_runpod.sh`) |
+| Inferencia (Vast.ai) | `inferencia/requirements.txt` (versiones fijadas) | `bash inferencia/iniciar_vast.sh` crea `/workspace/venv-inferencia` con PyTorch 2.6 (CUDA 12.4) |
 | Inferencia (Colab) | `inferencia/requirements.txt` | primera celda de `entrenamiento/Inferencia_en_Colab.ipynb` |
 | Entrenamiento (Colab) | `entrenamiento/requirements.txt` | primera celda de cada notebook |
+| Reentrenamiento M3 (Vast.ai) | versiones en `entrenamiento/M3_reentrenar_nube.ipynb` | primera celda del notebook |
 | Web | `web/composer.lock` + `web/Dockerfile` (PHP 8.4) | imagen Docker construida por Render |
 | Móvil | `movil/pubspec.lock` | `flutter pub get` |
 
@@ -139,6 +140,6 @@ cd movil && flutter analyze
 
 ## Seguridad y privacidad
 
-- No hay secretos en el repositorio: solo `.env.example`. Las claves viven en las variables de entorno de Render, RunPod y en los secretos de Colab.
+- No hay secretos en el repositorio: solo `.env.example`. Las claves viven en las variables de entorno de Render y en los secretos de Colab; en Vast.ai se escriben al arrancar y no se guardan en disco.
 - El endpoint de inferencia exige `X-API-Key`.
 - Las imágenes de evidencia se guardan en la BD y solo se sirven a usuarios autenticados. Los pasajeros se cubren con máscara: no hay reconocimiento facial ni recortes de rostros.

@@ -6,7 +6,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
-/** Cliente del endpoint de inferencia. La URL vive en INFERENCE_URL (RunPod o Colab). */
+/** Cliente del endpoint de inferencia. La URL vive en INFERENCE_URL (Vast.ai, RunPod o Colab). */
 class InferenciaService
 {
     private function cliente()

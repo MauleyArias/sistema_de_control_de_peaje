@@ -1,4 +1,4 @@
-"""Endpoint único de inferencia del sistema de peaje (RunPod Pod o Google Colab).
+"""Endpoint único de inferencia del sistema de peaje (GPU en Vast.ai; también RunPod o Google Colab).
 
 Modelos:
   M1  Detección de placas (YOLOv9-t ONNX, proyecto anterior) + OCR (fast-plate-ocr; EasyOCR opcional)
@@ -187,11 +187,21 @@ def contar_ejes(imagen, caja_vehiculo):
     El modelo propio marca 5 keypoints por llanta (centro, abajo, arriba, izquierda, derecha);
     se usa el keypoint KPT_CENTRO (0) como posición de la llanta. Si el modelo tuviera 1 solo
     keypoint, también funciona.
+
+    M3 analiza solo el recorte del vehículo (M2) con un margen del 8 %: se entrenó con camiones
+    recortados y así las llantas ocupan más píxeles. Sin vehículo, analiza la imagen completa.
     """
     modelo = modelo_m3()
     if modelo is None:
         return None, []
-    res = modelo.predict(imagen, conf=UMBRAL_M3, device=DISPOSITIVO, verbose=False)[0]
+    zona, ox, oy = imagen, 0, 0
+    if caja_vehiculo:
+        x1, y1, x2, y2 = caja_vehiculo
+        mx, my = int(0.08 * (x2 - x1)), int(0.08 * (y2 - y1))
+        recorte = imagen[max(0, y1 - my):y2 + my, max(0, x1 - mx):x2 + mx]
+        if recorte.size:
+            zona, ox, oy = recorte, max(0, x1 - mx), max(0, y1 - my)
+    res = modelo.predict(zona, conf=UMBRAL_M3, device=DISPOSITIVO, verbose=False)[0]
     llantas = []
     if res.keypoints is not None and len(res.boxes):
         for kp, caja, conf in zip(res.keypoints.xy.tolist(), res.boxes.xyxy.tolist(), res.boxes.conf.tolist()):
@@ -199,12 +209,7 @@ def contar_ejes(imagen, caja_vehiculo):
             x, y = kp[KPT_CENTRO] if len(kp) > KPT_CENTRO else ((bx1 + bx2) / 2, (by1 + by2) / 2)
             if x <= 0 and y <= 0:  # keypoint no visible: centro de la caja
                 x, y = (bx1 + bx2) / 2, (by1 + by2) / 2
-            if caja_vehiculo:
-                x1, y1, x2, y2 = caja_vehiculo
-                margen = 0.1 * (x2 - x1)
-                if not (x1 - margen <= x <= x2 + margen and y1 - margen <= y <= y2 + margen):
-                    continue
-            llantas.append([round(x), round(y), round(conf, 3), bx2 - bx1])
+            llantas.append([round(x + ox), round(y + oy), round(conf, 3), bx2 - bx1])
     # Llantas cuyos centros se separan menos de media llanta (rueda doble) cuentan como un solo eje.
     llantas.sort(key=lambda p: p[0])
     ejes = []
@@ -265,7 +270,7 @@ def salud():
         "dispositivo": DISPOSITIVO,
         "m2_propio": (MODELOS / "m2_seg.pt").exists(),
         "m3_propio": (MODELOS / "m3_pose.pt").exists(),
-        "proveedor": os.getenv("PROVEEDOR", "runpod"),
+        "proveedor": os.getenv("PROVEEDOR", "vast"),
     }
 
 

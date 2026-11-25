@@ -71,7 +71,21 @@ Para el **rechazo** de una cuenta no autorizada en el video, usa una cuenta que 
 6. `Pasajeros_segmentacion.ipynb`: métricas del modelo de personas y error de conteo con tus fotos.
 7. Guarda la salida de la celda de **diagnóstico** de cada notebook (punto adicional de entornos).
 
-## 4. Endpoint de inferencia en RunPod (30 min) — punto adicional
+## 4. Endpoint de inferencia en Vast.ai (30 min) — punto adicional
+
+1. https://cloud.vast.ai → **Templates → PyTorch (Vast)**. Disco: **40 GB** (no se puede cambiar después). *On-Demand*, 1 GPU (RTX 3090 o similar; no serie 50), CUDA 12.4 o más.
+2. **Instances → Open → Jupyter Terminal**:
+   ```bash
+   cd /workspace
+   git clone https://github.com/MauleyArias/sistema_de_control_de_peaje.git peaje
+   bash peaje/inferencia/iniciar_vast.sh     # pide INFERENCE_API_KEY (la misma de Render)
+   ```
+3. **Instance Portal → Tunnels**: escribir `http://localhost:8000` → **Create New Tunnel**.
+4. Abrir `https://….trycloudflare.com/salud`: debe mostrar `"ok": true`, `"m2_propio": true`, `"m3_propio": true` y `"proveedor": "vast"`.
+5. Esa URL, sin `/salud`, va en `INFERENCE_URL` de Render. Si cambia el túnel, hay que actualizarla.
+6. La instancia cobra mientras está encendida y debe estarlo en la revisión. **Destroy** borra todo.
+
+### Alternativa: RunPod
 
 1. https://runpod.io → **Pods → Deploy**. GPU barata (RTX A4000, RTX 3090 o A5000 en *Community Cloud*, unos 0,2 a 0,4 USD/h).
 2. Plantilla: **RunPod PyTorch 2.4** (o similar con CUDA 12). Disco del contenedor: 20 GB; volumen: 20 GB.
@@ -137,7 +151,7 @@ El APK queda en `movil\build\app\outputs\flutter-apk\app-release.apk` → súbel
 - [ ] **Pantalla dividida**: el panel web recibe el paso sin recargar (celular grabado al lado del monitor, o scrcpy).
 - [ ] Agente con los **4 estados**: `2580BOS` (con paso), `3301SCZ` (sin paso), `9090XYZ` (identificada no registrada), `1111AAA` (no existe), `258OBOS` (sugerencia), al menos una consulta **por imagen** y una foto sin placa.
 - [ ] **Alerta en tiempo real** con una placa no registrada (o un vehículo sin saldo, como `1500PND`) y el Arduino con rojo + buzzer.
-- [ ] Consola de **RunPod** con el Pod en ejecución y una petición en vivo (`/salud` o el log `tail -f /workspace/inferencia.log`).
+- [ ] Consola de **Vast.ai** con la instancia en ejecución y una petición en vivo (`/salud` o el log `tail -f /workspace/inferencia.log`).
 - [ ] Caso con **varios pasajeros** (el panel muestra el número).
 - [ ] Conclusiones y métricas (mAP de M2 y M3, precisión del OCR, error de ejes, latencia).
 
