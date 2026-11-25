@@ -19,7 +19,7 @@ Sistema de punta a punta: una app móvil captura video en la caseta y envía fra
 | Endpoint de inferencia (Vast.ai) | `https://instrumental-democrat-folk-tables.trycloudflare.com/salud` |
 | Dataset M2 (Roboflow) | https://universe.roboflow.com/shirley-andrea-arias/peaje-vehiculos |
 | Datasets M3 (Roboflow Universe) | [axle](https://universe.roboflow.com/eternal-wiecw/axle-bjpov) y [truck axel](https://universe.roboflow.com/rajan-28noy/truck-axel), más fotos propias |
-| Carpeta de evidencias | Google Drive ← reemplazar |
+| Carpeta de evidencias | [Google Drive](https://drive.google.com/drive/folders/1gkwKasbNQ-DWs58soQwxjw2_0TiM95cr?usp=sharing) |
 
 ## Arquitectura
 
