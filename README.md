@@ -134,7 +134,7 @@ Diagnóstico: `python inferencia/diagnostico.py` (versión de Python, torch, CUD
 ## Pruebas
 
 ```bash
-cd web && composer install && php artisan test     # 10 pruebas: auth, lista blanca, 4 estados, cobro, alertas, agente
+cd web && composer install && php artisan test     # 11 pruebas: auth, lista blanca, 4 estados, cobro, alertas, agente
 cd movil && flutter analyze
 ```
 

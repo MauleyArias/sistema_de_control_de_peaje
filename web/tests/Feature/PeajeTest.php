@@ -119,6 +119,24 @@ class PeajeTest extends TestCase
             ->assertJsonPath('registrado', false)->assertJsonPath('motivo', 'sin_placa_legible');
     }
 
+    public function test_reintenta_si_el_tunel_responde_502_pero_no_si_es_401(): void
+    {
+        Http::swap(new \Illuminate\Http\Client\Factory);
+        Http::fake(['inferencia.test/*' => Http::sequence()->push('error code: 502', 502)->push('error code: 502', 502)->push(['placa' => '2580BOS'])]);
+        $this->assertSame('2580BOS', app(\App\Services\InferenciaService::class)->inferir('jpg')['placa']);
+        Http::assertSentCount(3);
+
+        Http::swap(new \Illuminate\Http\Client\Factory);
+        Http::fake(['inferencia.test/*' => Http::response('no', 401)]);
+        try {
+            app(\App\Services\InferenciaService::class)->inferir('jpg');
+            $this->fail('Debía fallar');
+        } catch (\RuntimeException $e) {
+            $this->assertStringContainsString('HTTP 401', $e->getMessage());
+        }
+        Http::assertSentCount(1);
+    }
+
     public function test_tarifa_por_ejes(): void
     {
         $this->assertEquals(45, \App\Models\Tarifa::calcular('camion', 5));
