@@ -27,7 +27,7 @@ MODELOS = BASE / "modelos"
 API_KEY = os.getenv("INFERENCE_API_KEY", "")
 OCR_MOTOR = os.getenv("OCR_MOTOR", "fastocr")  # fastocr | easyocr
 UMBRAL_PLACA = float(os.getenv("UMBRAL_PLACA", "0.4"))
-UMBRAL_M2 = float(os.getenv("UMBRAL_M2", "0.25"))
+UMBRAL_M2 = float(os.getenv("UMBRAL_M2", "0.5"))
 UMBRAL_M3 = float(os.getenv("UMBRAL_M3", "0.25"))
 KPT_CENTRO = int(os.getenv("KPT_CENTRO", "0"))  # índice del keypoint "centro de la llanta"
 DISPOSITIVO = os.getenv("DISPOSITIVO", "0" if os.getenv("CUDA_VISIBLE_DEVICES", "") != "" else "cpu")
@@ -131,7 +131,7 @@ def leer_placa(imagen, caja):
 
 # ---------------------------------------------------------------- M2, M3, M4 (Ultralytics)
 @lru_cache(maxsize=None)
-def yolo(nombre):
+def yolo(nombre, uso="vehiculo"):
     from ultralytics import YOLO
     return YOLO(str(nombre))
 
@@ -147,7 +147,7 @@ def modelo_m3():
 
 
 def modelo_pasajeros():
-    return yolo(MODELOS / "m4_pasajeros_seg.pt") if (MODELOS / "m4_pasajeros_seg.pt").exists() else yolo("yolo11n-seg.pt")
+    return yolo(MODELOS / "m4_pasajeros_seg.pt") if (MODELOS / "m4_pasajeros_seg.pt").exists() else yolo("yolo11n-seg.pt", "pasajeros")
 
 
 def clasificar_vehiculo(imagen):

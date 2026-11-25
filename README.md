@@ -14,9 +14,9 @@ Sistema de punta a punta: una app móvil captura video en la caseta y envía fra
 
 | Componente | URL |
 |---|---|
-| Aplicación web (subdominio HTTPS) | `https://peaje-ia.onrender.com` ← reemplazar |
+| Aplicación web (subdominio HTTPS) | `https://peaje-ia.onrender.com` |
 | Documentación de la API (Swagger) | `https://peaje-ia.onrender.com/api/docs` |
-| Endpoint de inferencia (Vast.ai) | `https://<tunel>.trycloudflare.com/salud` ← reemplazar |
+| Endpoint de inferencia (Vast.ai) | `https://instrumental-democrat-folk-tables.trycloudflare.com/salud` |
 | Dataset M2 (Roboflow) | `https://universe.roboflow.com/<workspace>/peaje-vehiculos-seg` ← reemplazar |
 | Datasets M3 (Roboflow Universe) | [axle](https://universe.roboflow.com/eternal-wiecw/axle-bjpov) y [truck axel](https://universe.roboflow.com/rajan-28noy/truck-axel), más fotos propias |
 | Carpeta de evidencias | Google Drive ← reemplazar |
@@ -122,7 +122,7 @@ La guía completa, paso a paso, está en **[docs/GUIA_DESPLIEGUE.md](docs/GUIA_D
 
 | Servicio | Archivo de entorno | Cómo recrearlo |
 |---|---|---|
-| Inferencia (Vast.ai) | `inferencia/requirements.txt` (versiones fijadas) | `bash inferencia/iniciar_vast.sh` crea `/workspace/venv-inferencia` con PyTorch 2.6 (CUDA 12.4) |
+| Inferencia (Vast.ai) | `inferencia/requirements_vast.txt` (versiones fijadas) | `bash inferencia/iniciar_vast.sh` sobre el entorno `venv` de la plantilla PyTorch (`/venv/main`, Python 3.12, torch 2.14.1+cu132) |
 | Inferencia (Colab) | `inferencia/requirements.txt` | primera celda de `entrenamiento/Inferencia_en_Colab.ipynb` |
 | Entrenamiento (Colab) | `entrenamiento/requirements.txt` | primera celda de cada notebook |
 | Reentrenamiento M3 (Vast.ai) | versiones en `entrenamiento/M3_reentrenar_nube.ipynb` | primera celda del notebook |

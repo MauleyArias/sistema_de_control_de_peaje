@@ -30,14 +30,16 @@ Fuentes y licencias de las imágenes públicas: truck axel (CC BY 4.0); axle ▢
 
 | Fotos | M3 inicial | M3 del 23/11 | M3 nuevo, foto completa | M3 nuevo en el endpoint (recorte) |
 |---|---|---|---|---|
-| Autos (13) | 6 | 9 | 12 | 12 |
+| Autos (13) | 6 | 9 | 12 | 13 |
 | Buses (12) | 0 | 0 | 1 | 4 |
-| Camiones (7) | 0 | 0 | 1 | 1 |
-| **Total (32)** | **6** | **9** | **14** | **17** |
+| Camiones (7) | 0 | 0 | 1 | 2 |
+| **Total (32)** | **6** | **9** | **14** | **19** |
 
-Si M3 ve menos de 2 ejes, el endpoint usa 2 por defecto: con esa regla el dato final es correcto en 24 de 32.
+Si M3 ve menos de 2 ejes, el endpoint usa 2 por defecto: con esa regla el dato final es correcto en 25 de 32.
 
-Limitaciones: el 0,977 se midió en imágenes parecidas a las de entrenamiento; en fotos propias en diagonal el conteo de camiones y buses sigue siendo débil, y no se midió en motos. Son pocas fotos, algunas pudieron usarse en el M3 anterior, y las mismas sirvieron para elegir el recorte.
+Limitaciones: el 0,977 se midió en imágenes parecidas a las de entrenamiento; en fotos propias en diagonal el conteo de camiones y buses sigue siendo débil, y no se midió en motos. Son pocas fotos, algunas pudieron usarse en el M3 anterior, y las mismas sirvieron para elegir el recorte y el umbral de M2 (0.5).
+
+**Categoría (M2 + respaldo COCO)** en 102 fotos propias, con umbral 0.5: 82 aciertos (auto 17/36, camion 23/24, moto 21/21, bus 21/21). M2 decide en 30 y acierta 28; en las demás responde COCO. Los errores son sobre todo SUV y pickups clasificados como camión. Algunas fotos pudieron usarse para entrenar M2.
 
 Incluir: `results.png`, matriz de confusión de M2, ejemplos de predicción.
 

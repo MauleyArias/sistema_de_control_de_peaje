@@ -1,0 +1,9 @@
+# Entorno de inferencia usado en Vast.ai (plantilla PyTorch, Python 3.12.16, CUDA 13.2, RTX 3090).
+# torch 2.14.1+cu132 y torchvision 0.29.1+cu132 vienen instalados en la plantilla (/venv/main).
+ultralytics==8.3.240
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+python-multipart==0.0.20
+fast-plate-ocr==1.1.0
+onnxruntime==1.32.0
+numpy==2.5.5
