@@ -122,7 +122,7 @@ La guía completa, paso a paso, está en **[docs/GUIA_DESPLIEGUE.md](docs/GUIA_D
 
 | Servicio | Archivo de entorno | Cómo recrearlo |
 |---|---|---|
-| Inferencia (Vast.ai) | `inferencia/requirements_vast.txt` (versiones fijadas) | `bash inferencia/iniciar_vast.sh` sobre el entorno `venv` de la plantilla PyTorch (`/venv/main`, Python 3.12, torch 2.14.1+cu132) |
+| Inferencia (Vast.ai) | Entorno **conda** (Miniforge: conda 26.10.0, mamba 2.9.0) en `/venv/main`; versiones fijadas en `inferencia/requirements_vast.txt` y `environment_vast.yml` (carpeta de evidencias) | `conda env create -f environment_vast.yml`, o `bash inferencia/iniciar_vast.sh` en la plantilla PyTorch (Python 3.12, torch 2.14.1+cu132) |
 | Inferencia (Colab) | `inferencia/requirements.txt` | primera celda de `entrenamiento/Inferencia_en_Colab.ipynb` |
 | Entrenamiento (Colab) | `entrenamiento/requirements.txt` | primera celda de cada notebook |
 | Reentrenamiento M3 (Vast.ai) | versiones en `entrenamiento/M3_reentrenar_nube.ipynb` | primera celda del notebook |

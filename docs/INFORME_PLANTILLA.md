@@ -64,7 +64,7 @@ Pusher Channels, canal privado `private-panel` autorizado por la sesión de Lara
 Google OAuth (Socialite) en la web; en la app, el ID token se valida con `tokeninfo` (aud, iss, email_verified) y se emite un token Sanctum de 7 días. Lista blanca y roles en la tabla `usuarios`. La inferencia se protege con `X-API-Key`. No hay secretos en el repositorio.
 
 ## 7. Puntos adicionales
-- Entornos: `requirements.txt` con versiones fijadas + salidas de `diagnostico.py` (Vast.ai, Colab).
+- Entornos: `requirements.txt` con versiones fijadas + salidas de `diagnostico.py`. En Vast.ai, entorno conda (Miniforge, conda 26.10.0 y mamba 2.9.0) exportado con `conda env export`.
 - Endpoint GPU en vivo: Vast.ai, RTX 3090, URL `https://instrumental-democrat-folk-tables.trycloudflare.com/salud` (aceptado por el docente en lugar de RunPod).
 - Pasajeros: campo `pasos.pasajeros`, JSON `pasajeros`, columna en el panel, evidencia con máscara.
 - Hardware: Arduino UNO por USB OTG con LEDs y buzzer (fotos del circuito).
